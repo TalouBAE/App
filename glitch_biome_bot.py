@@ -16,10 +16,11 @@ SUPPORT_SERVER_LINK = "https://discord.gg/sFqzpzmk"  # Support Discord server li
 
 
 class BiomeMonitorClient(discord.Client):
-    def __init__(self, token, webhook_url):
+    def __init__(self, token, webhook_url, role_id):
         super().__init__()
         self.token = token
         self.webhook_url = webhook_url
+        self.role_id = role_id  # Role ID for pings
         self.running = True  # Track whether the bot should keep running
 
     async def on_ready(self):
@@ -42,9 +43,11 @@ class BiomeMonitorClient(discord.Client):
         content_upper = message.content.upper()
         for keyword in KEYWORDS:
             if keyword.upper() in content_upper:
+                # Add a ping if Role ID is provided
+                ping = f"<@&{self.role_id}>" if self.role_id else ""
                 # Send message to the Discord webhook
                 payload = {
-                    "content": f"**Detected a potential glitch biome post:**\n{message.content}\n**Link:** {link_match.group(0)}"
+                    "content": f"{ping} **Detected a potential glitch biome post:**\n{message.content}\n**Link:** {link_match.group(0)}"
                 }
                 response = requests.post(self.webhook_url, json=payload)
                 if response.status_code == 204:
@@ -67,11 +70,12 @@ class BiomeMonitorClient(discord.Client):
         print("Stopping bot...")
 
 
-def save_config(token, webhook_url):
+def save_config(token, webhook_url, role_id):
     """Save user input to a JSON file."""
     config = {
         "token": token,
         "webhook_url": webhook_url,
+        "role_id": role_id,
     }
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
@@ -83,7 +87,7 @@ def load_config():
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        return {"token": "", "webhook_url": ""}
+        return {"token": "", "webhook_url": "", "role_id": ""}
 
 
 def start_bot():
@@ -91,18 +95,19 @@ def start_bot():
     # Get user inputs
     token = token_entry.get().strip()
     webhook_url = webhook_entry.get().strip()
+    role_id = role_id_entry.get().strip()
 
     # Validate inputs
     if not token or not webhook_url:
-        messagebox.showerror("Error", "All fields must be filled out.")
+        messagebox.showerror("Error", "Discord Token and Webhook URL fields must be filled out.")
         return
 
     try:
         # Save the user input
-        save_config(token, webhook_url)
+        save_config(token, webhook_url, role_id)
 
         # Initialize and start the bot in a separate thread
-        bot = BiomeMonitorClient(token, webhook_url)
+        bot = BiomeMonitorClient(token, webhook_url, role_id)
         bot_thread = threading.Thread(target=bot.run_bot)
         bot_thread.start()
         messagebox.showinfo("Success", "The bot is now running! Use the Stop button to stop it.")
@@ -170,13 +175,19 @@ webhook_entry = tk.Entry(root, width=50)
 webhook_entry.insert(0, config.get("webhook_url", ""))  # Pre-fill with saved data
 webhook_entry.grid(row=1, column=1, padx=10, pady=5)
 
+# Optional Role ID
+tk.Label(root, text="Optional Role ID (only numbers, no <@&>):").grid(row=2, column=0, sticky=tk.W, padx=10, pady=5)
+role_id_entry = tk.Entry(root, width=50)
+role_id_entry.insert(0, config.get("role_id", ""))  # Pre-fill with saved data
+role_id_entry.grid(row=2, column=1, padx=10, pady=5)
+
 # Start Bot Button
 start_button = tk.Button(root, text="Start Bot", command=start_bot)
-start_button.grid(row=2, column=0, pady=10)
+start_button.grid(row=3, column=0, pady=10)
 
 # Stop Bot Button
 stop_button = tk.Button(root, text="Stop Bot", command=stop_bot)
-stop_button.grid(row=2, column=1, pady=10)
+stop_button.grid(row=3, column=1, pady=10)
 
 # Run the GUI loop
 root.mainloop()
