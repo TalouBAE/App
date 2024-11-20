@@ -1,4 +1,4 @@
-The Glitch Biome Bot Application is a user-friendly tool designed to monitor a specific Discord channel for Roblox private server links related to glitch biomes. The application helps users automatically detect and share these links to a target channel via a webhook.
+The Glitch Biome Bot Application is a user-friendly tool designed to monitor the #biome channel in the Sol's RNG discord server. It will catch the  private server links that mention glitch biomes. The application helps users automatically detect and share these links to a target channel via a webhook.
 
 Getting Started
 When you first open the application, you will see a simple interface that asks for two key pieces of information:
